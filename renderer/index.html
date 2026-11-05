@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' lume:; script-src 'self' lume:; style-src 'self' 'unsafe-inline' lume:; img-src 'self' lume: data: blob: https: http:; font-src 'self' data:; connect-src 'self' lume: data: blob: http: https: ws:; worker-src blob:; object-src 'none'; media-src 'self' lume: blob:">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LumeShare</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="icon.png">
+</head>
+<body>
+  <div id="titlebar">
+    <div class="tb-left">
+      <img class="tb-logo" src="icon.png" alt="">
+      <span class="tb-title">LumeShare</span>
+      <span class="tb-sub">局域网分享与屏幕直播</span>
+    </div>
+    <div class="tb-right">
+      <button class="tb-btn" id="tb-min" title="最小化">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 12h12"/></svg>
+      </button>
+      <button class="tb-btn" id="tb-max" title="最大化">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
+      </button>
+      <button class="tb-btn tb-close" id="tb-close" title="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="layout">
+    <aside id="sidebar">
+      <div class="side-label">功能</div>
+      <nav class="side-nav">
+<button class="nav-item active" data-view="share">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.6 10.7l6.8-3.4M8.6 13.3l6.8 3.4"/></svg></span>
+          局域网分享
+        </button>
+<button class="nav-item" data-view="live">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/><path d="M12 16v4"/><path d="M12 10.5a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4z"/><path d="M8.6 7.2a4.8 4.8 0 0 0 0 3.2"/></svg></span>
+          屏幕直播
+        </button>
+        <button class="nav-item" data-view="files">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+          文件库
+        </button>
+<button class="nav-item" data-view="feedback">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12c0 4.1-3.8 7.4-8.5 7.4-1 0-2-.15-2.9-.43L4.5 20.5l1.1-3.2C4.6 16 3.5 14.1 3.5 12c0-4.1 3.8-7.4 8.5-7.4s8.5 3.3 8.5 7.4z"/><path d="M8.8 12h6.4"/></svg></span>
+          意见反馈
+        </button>
+<button class="nav-item" data-view="settings">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg></span>
+          设置
+        </button>
+      </nav>
+      <div class="side-foot">
+        <span class="foot-line" id="side-version">v2.0.2</span>
+      </div>
+    </aside>
+
+    <main id="main">
+      <!-- 屏幕直播 -->
+      <section id="view-live" class="view">
+        <div class="view-head">
+          <div class="head-title">
+            <h1>屏幕直播</h1>
+            <p>把本机屏幕实时直播给同一局域网内的电脑或手机，画面只在内网传输，不经过任何服务器</p>
+          </div>
+          <div class="head-actions">
+            <div class="live-switch">
+              <span class="live-switch-label">屏幕直播</span>
+              <label class="switch"><input type="checkbox" id="live-enable"><span class="slider"></span></label>
+            </div>
+            <div id="live-state-chip" class="chip chip-off">
+              <span class="chip-dot hidden"></span>
+              <span id="live-state-text">未开启</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="live-body">
+          <div id="live-off-tip" class="live-off-tip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><path d="M12 16.2v.2"/></svg>
+            <span>屏幕直播未开启：开启后才能发起直播或观看他人直播（直播双方都需要开启此功能）。</span>
+          </div>
+
+          <div class="live-grid">
+            <div class="panel live-panel" id="live-panel-cast">
+              <div class="panel-title">发起直播 · 我是主播</div>
+
+              <div id="live-setup">
+                <div class="live-row">
+                  <div class="field live-field-grow">
+                    <label for="live-source">直播画面</label>
+                    <select id="live-source"></select>
+                  </div>
+                  <button id="live-source-refresh" class="btn btn-ghost btn-sm">刷新画面</button>
+                </div>
+
+                <div class="live-row live-row-tight">
+                  <div class="field">
+                    <label>画面清晰度</label>
+                    <div class="seg seg-light" id="live-preset">
+                      <button data-preset="hd" class="on">高清（原始分辨率）</button>
+                      <button data-preset="smooth">流畅（更省流量）</button>
+                    </div>
+                  </div>
+                </div>
+
+                <p class="live-note">直播期间请保持软件运行；切换画面或清晰度会在直播中立即生效。默认采集整个屏幕，也可选择某个窗口。高清档按屏幕原始像素输出、不做任何放大，保证观看端清晰。</p>
+                <button id="live-start-btn" class="btn btn-primary live-cta">开始直播</button>
+              </div>
+
+              <div id="live-card" class="hidden">
+                <div class="live-code-row">
+                  <div class="live-code-main">
+                    <div class="live-code-label">房间码 · 10 位数字</div>
+                    <div class="live-code" id="live-code">----------</div>
+                  </div>
+                  <button id="live-copy-code" class="btn btn-ghost btn-sm">复制房间码</button>
+                </div>
+
+                <div class="live-qr-wrap">
+                  <div class="live-qr" id="live-qr"></div>
+                  <div class="live-qr-side">
+                    <div class="live-qr-title">扫码直接观看</div>
+                    <p class="live-qr-desc">手机或另一台电脑扫描二维码即可打开直播画面；也可把房间里上方的房间码发给对方，在网页中输入观看。</p>
+                    <div class="live-url" id="live-url"></div>
+                    <button id="live-copy-url" class="btn btn-ghost btn-sm">复制直播地址</button>
+                  </div>
+                </div>
+
+                <div class="live-stats">
+                  <span>观看人数 <b id="live-viewers">0</b></span>
+                  <span>画面 <b id="live-profile">-</b></span>
+                  <span>已直播 <b id="live-elapsed">00:00</b></span>
+                </div>
+
+                <button id="live-stop-btn" class="btn btn-danger-solid live-cta">停止直播</button>
+              </div>
+            </div>
+
+            <div class="panel live-panel" id="live-panel-watch">
+              <div class="panel-title">观看直播 · 我是观众</div>
+
+              <div id="live-watch-setup">
+                <div class="live-row">
+                  <div class="field live-field-code">
+                    <label for="live-room-input">房间码</label>
+                    <input id="live-room-input" maxlength="10" inputmode="numeric" placeholder="10 位数字" autocomplete="off">
+                  </div>
+                  <div class="field live-field-grow">
+                    <label for="live-host-input">主播地址</label>
+                    <input id="live-host-input" placeholder="例如 192.168.1.8:16900" autocomplete="off">
+                  </div>
+                </div>
+
+                <div class="live-actions">
+                  <button id="live-watch-btn" class="btn btn-primary">观看直播</button>
+                </div>
+
+                <p class="live-note">房间码与地址由主播提供（主播页面上的房间码与直播地址）；也可以直接把主播的直播链接粘贴到房间码输入框。</p>
+              </div>
+
+              <div id="live-player-card" class="hidden">
+                <div class="live-player" id="live-player-wrap">
+                  <video id="live-video" muted playsinline autoplay></video>
+                  <div class="live-player-overlay" id="live-overlay">
+                    <div class="spinner"></div>
+                    <p id="live-overlay-text">正在连接直播画面…</p>
+                  </div>
+                  <div class="live-player-bar">
+                    <span class="live-badge"><i></i>LIVE</span>
+                    <span class="live-player-meta" id="live-player-meta"></span>
+                    <div class="seg seg-dark" id="live-watch-quality">
+                      <button data-q="web">流畅</button>
+                      <button data-q="hd" class="on">高清</button>
+                    </div>
+                    <button id="live-full-btn" class="live-icon-btn" title="全屏观看">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
+                    </button>
+                    <button id="live-close-btn" class="live-icon-btn" title="结束观看">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 文件库 -->
+      <section id="view-files" class="view">
+        <div class="view-head">
+          <div class="head-title">
+            <h1>文件库</h1>
+            <p>扫描本地磁盘，按类型整理文件，只读预览</p>
+          </div>
+          <div class="head-actions">
+            <div class="drive-select-wrap">
+              <label for="drive-select">盘符</label>
+              <select id="drive-select"></select>
+            </div>
+            <button id="scan-btn" class="btn btn-primary">扫描此盘</button>
+          </div>
+        </div>
+
+        <div class="tabs-wrap">
+          <div class="tabs" id="cat-tabs">
+            <button class="tab active" id="tab-images" data-cat="images">图片<span class="tab-count" id="cnt-images">-</span></button>
+            <button class="tab" id="tab-videos" data-cat="videos">视频<span class="tab-count" id="cnt-videos">-</span></button>
+            <button class="tab" id="tab-pdfs" data-cat="pdfs">PDF<span class="tab-count" id="cnt-pdfs">-</span></button>
+            <button class="tab" id="tab-words" data-cat="words">Word<span class="tab-count" id="cnt-words">-</span></button>
+            <button class="tab" id="tab-apps" data-cat="apps">应用<span class="tab-count" id="cnt-apps">-</span></button>
+            <button class="tab" id="tab-others" data-cat="others">其他<span class="tab-count" id="cnt-others">-</span></button>
+          </div>
+          <div class="sort-wrap">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+              <input id="search-input" type="text" placeholder="搜索全部文件…" autocomplete="off">
+              <button id="search-clear" class="search-clear hidden" title="清除搜索">&times;</button>
+            </div>
+            <select id="sort-select">
+              <option value="mtime">按修改时间</option>
+              <option value="name">按名称</option>
+              <option value="size">按大小</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="content-area">
+          <div id="grid-wrap" class="hidden"></div>
+          <div id="list-wrap" class="hidden">
+            <div id="list-head" class="file-row file-head"></div>
+            <div id="list-body"></div>
+            <div id="load-more-wrap" class="load-more-wrap hidden">
+              <button id="load-more-btn" class="btn btn-ghost">加载更多</button>
+              <span id="load-more-count" class="load-more-count"></span>
+            </div>
+          </div>
+          <div id="empty-state" class="hidden">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+            </div>
+            <p class="empty-title" id="empty-title">暂无文件</p>
+            <p class="empty-sub" id="empty-sub"></p>
+          </div>
+        </div>
+
+        <div id="scan-overlay" class="scan-overlay hidden">
+          <div class="scan-card">
+            <div class="spinner"></div>
+            <p id="scan-status">正在扫描…</p>
+            <button id="scan-cancel" class="btn btn-ghost">取消扫描</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 局域网分享（默认视图） -->
+      <section id="view-share" class="view active">
+        <div class="view-head">
+          <div class="head-title">
+            <h1>局域网分享</h1>
+            <p>同一局域网内，通过提取码快速传输文件，全程本地运行</p>
+          </div>
+          <div class="head-actions">
+            <button id="share-toggle-btn" class="btn btn-ghost" title="开启或关闭分享服务">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><circle cx="12" cy="12" r="3"/><path d="M12 5V3M12 21v-2M5 12H3M21 12h-2M7.05 7.05L5.64 5.64M18.36 18.36l-1.41-1.41M16.95 7.05l1.41-1.41M5.64 18.36l1.41-1.41"/></svg>
+              <span id="share-toggle-text">开启分享</span>
+            </button>
+            <div id="share-status-chip" class="chip chip-off">服务未启动</div>
+            <button id="share-qr-btn" class="btn btn-ghost" title="手机扫码打开分享页面">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1.2"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="1.2"/><rect x="3.5" y="14" width="6.5" height="6.5" rx="1.2"/><path d="M14 14h3v3h-3zM20.5 14v6.5M17 20.5h3.5"/></svg>
+              手机扫码
+            </button>
+            <button id="copy-link-btn" class="btn btn-ghost" title="复制分享链接">复制链接</button>
+          </div>
+        </div>
+
+        <div class="share-body">
+          <div class="panel upload-panel">
+            <div class="panel-title">上传文件</div>
+
+            <div id="share-off-tip" class="share-off-tip hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><path d="M12 16.2v.2"/></svg>
+              <span>分享服务已关闭：已发出的链接暂时无法访问，开启服务后可继续使用。</span>
+            </div>
+
+            <div id="drop-zone">
+              <button id="upload-btn" class="round-btn" title="点击上传">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5"/><path d="M7 10l5-5 5 5"/><path d="M5 17v1.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V17"/></svg>
+              </button>
+              <p class="dz-hint">点击或拖拽文件到此处上传</p>
+              <p class="dz-sub">支持粘贴上传 · 文件大小不限 · 自动生成 6 位提取码</p>
+              <input type="file" id="file-input" multiple hidden>
+            </div>
+
+            <div id="uploading-card" class="uploading-card hidden">
+              <div class="spinner"></div>
+              <p id="upload-status">正在上传…</p>
+            </div>
+
+            <div id="share-success" class="share-success hidden">
+              <div class="ok-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+              </div>
+              <p class="ok-title">分享成功</p>
+              <div class="ok-file"><span id="share-file-name"></span><span id="share-file-size"></span></div>
+              <div class="code-box" id="share-code">------</div>
+              <button id="copy-code-btn" class="btn btn-ghost">复制提取码</button>
+              <div class="url-row">
+                <span class="url-text" id="share-url"></span>
+                <button id="copy-url-btn" class="url-copy">复制</button>
+              </div>
+              <div class="share-qr" id="share-qr"></div>
+              <p class="ok-note">手机扫描上方二维码，或把提取码 / 链接发给同一局域网内的好友即可获取文件<br>若对方无法连接，请检查 Windows 防火墙是否放行</p>
+            </div>
+
+            <div id="recent-wrap" class="recent-wrap hidden">
+              <div class="panel-title sub">本次分享记录</div>
+              <div id="recent-list"></div>
+            </div>
+          </div>
+
+          <div id="fetch-panel" class="panel fetch-panel hidden">
+            <div class="panel-title">获取文件</div>
+            <div class="fetch-row">
+              <div class="field">
+                <label for="fetch-device">设备</label>
+                <select id="fetch-device"></select>
+              </div>
+              <div id="manual-addr-wrap" class="field hidden">
+                <label for="manual-addr">服务器地址</label>
+                <input id="manual-addr" placeholder="例如 192.168.1.8:16888">
+              </div>
+              <div class="field">
+                <label for="fetch-code">提取码</label>
+                <input id="fetch-code" maxlength="6" inputmode="numeric" placeholder="6 位数字" autocomplete="off">
+              </div>
+              <button id="fetch-btn" class="btn btn-primary">获取</button>
+            </div>
+            <p class="fetch-note">提取码由分享方提供，设备列表通过局域网自动发现</p>
+            <div id="fetch-result"></div>
+          </div>
+        </div>
+
+        <div class="share-footer">
+          <button id="fetch-toggle" class="pill-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="M7 9l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            获取文件
+          </button>
+        </div>
+      </section>
+
+      <!-- 设置 -->
+      <section id="view-settings" class="view">
+        <div class="view-head">
+          <div class="head-title">
+            <h1>设置</h1>
+            <p>缓存、启动与性能相关设置</p>
+          </div>
+        </div>
+
+        <div class="settings-body">
+          <div class="panel settings-card">
+            <div class="panel-title">缩略图缓存</div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">缓存位置</div>
+                <div class="setting-desc">图片缩略图保存目录，可换到空间更充足的盘符</div>
+              </div>
+              <div class="setting-ctrl">
+                <span id="cache-dir" class="path-text" title=""></span>
+                <button id="cache-dir-btn" class="btn btn-ghost btn-sm">更改</button>
+                <button id="cache-dir-reset" class="btn btn-ghost btn-sm">恢复默认</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">缓存上限</div>
+                <div class="setting-desc">超过上限自动清理最早生成的缩略图</div>
+              </div>
+              <div class="setting-ctrl">
+                <select id="cache-limit">
+                  <option value="100">100 MB</option>
+                  <option value="300">300 MB</option>
+                  <option value="500">500 MB</option>
+                  <option value="1000">1 GB</option>
+                  <option value="0">不限制</option>
+                </select>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">当前占用</div>
+                <div class="setting-desc" id="cache-usage">计算中…</div>
+              </div>
+              <div class="setting-ctrl">
+                <button id="cache-clear" class="btn btn-ghost btn-sm">清空缓存</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel settings-card">
+            <div class="panel-title">启动行为</div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">启动时自动扫描上次盘符</div>
+                <div class="setting-desc">打开软件后自动扫描上次使用的盘符，无需手动点击</div>
+              </div>
+              <div class="setting-ctrl">
+                <label class="switch"><input type="checkbox" id="opt-autoscan"><span class="slider"></span></label>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">下次打开应用自动开启分享</div>
+                <div class="setting-desc">开启：每次打开软件自动运行分享服务；关闭：默认不运行，需在分享页手动开启</div>
+              </div>
+              <div class="setting-ctrl">
+                <label class="switch"><input type="checkbox" id="opt-autoshare"><span class="slider"></span></label>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">开机自动启动</div>
+                <div class="setting-desc">登录 Windows 后自动在后台启动 LumeShare</div>
+              </div>
+              <div class="setting-ctrl">
+                <label class="switch"><input type="checkbox" id="opt-launch"><span class="slider"></span></label>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">关闭后最小化到托盘</div>
+                <div class="setting-desc">点击关闭按钮时不退出程序，而是隐藏到右下角图标区</div>
+              </div>
+              <div class="setting-ctrl">
+                <label class="switch"><input type="checkbox" id="opt-tray"><span class="slider"></span></label>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">背景音乐</div>
+                <div class="setting-desc" id="bgm-status">默认关闭；开启后自动把音乐下载到本地并在后台循环播放，不会弹出任何界面</div>
+              </div>
+              <div class="setting-ctrl">
+                <label class="switch"><input type="checkbox" id="opt-bgm"><span class="slider"></span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel settings-card">
+            <div class="panel-title">局域网分享</div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">分享文件存储位置</div>
+                <div class="setting-desc">局域网分享上传的文件保存在此目录，可查看所在盘符</div>
+              </div>
+              <div class="setting-ctrl">
+                <span id="share-storage-dir" class="path-text" title=""></span>
+                <button id="share-storage-btn" class="btn btn-ghost btn-sm">更改</button>
+                <button id="share-storage-reset" class="btn btn-ghost btn-sm">恢复默认</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">已分享文件</div>
+                <div class="setting-desc" id="share-storage-summary">正在读取…</div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">清空已分享文件</div>
+                <div class="setting-desc">一键删除本机保存的全部分享文件与提取码，删除后不可恢复</div>
+              </div>
+              <div class="setting-ctrl">
+                <button id="share-clear-btn" class="btn btn-danger btn-sm">一键清空</button>
+              </div>
+            </div>
+            <p class="setting-tip">分享文件默认保存在软件安装目录的 share 文件夹中（装在哪个盘就存在哪个盘，不占 C 盘）；更改存储位置时已分享文件会自动迁移，提取码与链接仍有效；链接仅在分享服务开启时可访问。</p>
+          </div>
+
+          <div class="panel settings-card">
+            <div class="panel-title">性能</div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">图片列表显示</div>
+                <div class="setting-desc">缩略图模式加载更快、更省内存，低配置电脑建议使用</div>
+              </div>
+              <div class="setting-ctrl radio-group">
+                <label class="radio"><input type="radio" name="q" id="q-thumb" value="thumb"><span>缩略图（推荐）</span></label>
+                <label class="radio"><input type="radio" name="q" id="q-original" value="original"><span>原图</span></label>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">默认视频播放器</div>
+                <div class="setting-desc">在线观看视频时使用的播放器</div>
+              </div>
+              <div class="setting-ctrl radio-group">
+                <label class="radio"><input type="radio" name="vp" id="vp-builtin" value="builtin"><span>内置播放器</span></label>
+                <label class="radio"><input type="radio" name="vp" id="vp-system" value="system"><span>系统默认</span></label>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">兼容模式</div>
+                <div class="setting-desc">禁用硬件加速，减少图形渲染负担（低配置电脑，重启后生效）</div>
+              </div>
+              <div class="setting-ctrl">
+                <label class="switch"><input type="checkbox" id="opt-compat"><span class="slider"></span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel settings-card" id="sys-panel">
+            <div class="panel-title">系统</div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">操作日志</div>
+                <div class="setting-desc" id="log-summary">从安装起自动记录本机操作与故障</div>
+              </div>
+              <div class="setting-ctrl">
+                <button id="log-download-btn" class="btn btn-primary btn-sm" title="把本机操作日志按加密格式保存到本地（仅管理员客户端可解析）">下载日志</button>
+              </div>
+            </div>
+            <p class="setting-tip">日志从软件安装时开始记录，下载后保存为你选择位置的加密日志文件（.lslog，普通软件打开为乱码，仅管理员客户端可解析），不会上传到任何服务器。</p>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">检查更新</div>
+                <div class="setting-desc" id="update-status">通过官方更新接口检测最新版本</div>
+              </div>
+              <div class="setting-ctrl">
+                <button id="update-check-btn" class="btn btn-primary btn-sm">检查更新</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">应用版本</div>
+                <div class="setting-desc">LumeShare 局域网分享与本地文件整理工具</div>
+              </div>
+              <div class="setting-ctrl"><span id="app-version" class="path-text">-</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+
+    </main>
+  </div>
+
+  <div id="modal-root"></div>
+
+  <script src="dist/app.bundle.js"></script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+{
+  "name": "lumeshare",
+  "productName": "LumeShare",
+  "version": "2.0.2",
+  "description": "LumeShare - LAN file sharing and screen live streaming for Windows (Electron)",
+  "author": "LumeShare contributors",
+  "license": "MIT",
+  "private": false,
+  "main": "main/main.js",
+  "scripts": {
+    "icons": "electron scripts/make-icon.js",
+    "web": "node scripts/build-web.js",
+    "start": "npm run web && electron .",
+    "dist": "npm run web && electron-builder --win nsis",
+    "pack": "npm run web && electron-builder --dir"
+  },
+  "dependencies": {
+    "docx-preview": "^0.3.2",
+    "qrcode-generator": "^2.0.4"
+  },
+  "devDependencies": {
+    "@esbuild/win32-x64": "^0.24.2",
+    "electron": "22.3.27",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.24.2",
+    "pdfjs-dist": "^3.11.174",
+    "png-to-ico": "^2.1.8"
+  },
+  "build": {
+    "appId": "com.lumeshare.app",
+    "productName": "LumeShare",
+    "copyright": "Copyright © 2025 LumeShare",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main/**/*",
+      "preload/**/*",
+      "renderer/**/*",
+      "share-web/**/*",
+      "live-web/**/*",
+      "shared/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "afterPack": "scripts/after-pack.js",
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false,
+      "artifactName": "LumeShare-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "LumeShare",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "include": "installer.nsh"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yingming12345/lumeshare.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yingming12345/lumeshare/issues"
+  },
+  "homepage": "https://github.com/yingming12345/lumeshare#readme",
+  "keywords": [
+    "electron",
+    "lan",
+    "file-sharing",
+    "screen-sharing",
+    "windows"
+  ]
+}

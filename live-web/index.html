@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0b1220">
+<title>LumeShare 屏幕直播</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f4f6fb;
+    --panel: #ffffff;
+    --border: #e5e9f2;
+    --text: #1b2434;
+    --text-2: #5c6675;
+    --text-3: #97a1b0;
+    --danger: #dc2626;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 22px 16px;
+  }
+  .hidden { display: none !important; }
+
+  .join-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 30px 26px 26px;
+    box-shadow: 0 14px 40px rgba(17, 30, 60, 0.10);
+  }
+  .brand { display: flex; align-items: center; gap: 11px; margin-bottom: 22px; }
+  .mark {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: #fff; font-weight: 800; font-size: 15px; letter-spacing: .5px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, .28);
+  }
+  .brand h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: .2px; }
+  .brand p { margin: 2px 0 0; font-size: 12.5px; color: var(--text-3); }
+  .label { font-size: 13px; color: var(--text-2); margin-bottom: 8px; font-weight: 600; }
+  .code-input {
+    width: 100%;
+    height: 60px;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    background: #fbfcfe;
+    font-size: 27px;
+    font-weight: 700;
+    letter-spacing: 7px;
+    text-align: center;
+    color: var(--text);
+    outline: none;
+    font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .code-input::placeholder { font-size: 15px; letter-spacing: 1px; font-weight: 500; color: #b3bcc9; }
+  .code-input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(37, 99, 235, .12); }
+  .join-btn {
+    width: 100%;
+    height: 50px;
+    margin-top: 16px;
+    border: 0;
+    border-radius: 13px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s, transform .05s;
+  }
+  .join-btn:hover { background: var(--primary-dark); }
+  .join-btn:active { transform: scale(.99); }
+  .join-btn:disabled { background: #b9c8ef; cursor: default; }
+  .msg { min-height: 20px; margin-top: 12px; font-size: 13px; color: var(--danger); line-height: 1.6; }
+  .hint { margin: 18px 0 0; font-size: 12.5px; color: var(--text-3); line-height: 1.8; }
+  .hint b { color: var(--text-2); font-weight: 600; }
+
+  .stage { width: 100%; max-width: 1280px; }
+  .player-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #0b1220;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 18px 50px rgba(8, 15, 32, .35);
+  }
+  .player-wrap video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    background: #0b1220;
+  }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    color: #e6edf9;
+    background: rgba(11, 18, 32, .86);
+    text-align: center;
+    padding: 20px;
+  }
+  .overlay p { margin: 0; font-size: 14px; color: #aabbd6; line-height: 1.7; }
+  .spinner {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,.16);
+    border-top-color: #60a5fa;
+    animation: spin .9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .live-dot {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(220, 38, 38, .92); color: #fff;
+    font-size: 11.5px; font-weight: 700; letter-spacing: .6px;
+    padding: 4px 10px; border-radius: 7px;
+  }
+  .live-dot i { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: blink 1.4s infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+
+  .toolbar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: linear-gradient(to top, rgba(6, 11, 22, .88), rgba(6, 11, 22, 0));
+    color: #fff;
+    font-size: 12.5px;
+  }
+  .tb-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .tb-code { color: #c9d6ea; font-family: ui-monospace, Consolas, monospace; letter-spacing: 1px; }
+  .tb-meta { color: #8fa2bf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seg { display: inline-flex; background: rgba(255,255,255,.12); border-radius: 9px; padding: 2px; }
+  .seg button {
+    border: 0; background: transparent; color: #cbd6e8; font-size: 12px; font-weight: 600;
+    padding: 6px 11px; border-radius: 7px; cursor: pointer; font-family: var(--font);
+  }
+  .seg button.on { background: rgba(255,255,255,.92); color: #0b1220; }
+  .icon-btn {
+    width: 34px; height: 34px; border-radius: 9px; border: 0; cursor: pointer;
+    background: rgba(255,255,255,.12); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .icon-btn:hover { background: rgba(255,255,255,.22); }
+  .icon-btn svg { width: 17px; height: 17px; }
+  .stage-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; margin-top: 14px; color: var(--text-2); font-size: 13px; flex-wrap: wrap;
+  }
+  .stage-foot .name { font-weight: 600; color: var(--text); }
+  .link-btn { border: 0; background: none; color: var(--primary); font-size: 13px; cursor: pointer; font-weight: 600; padding: 4px 0; }
+  .warning {
+    margin-top: 12px; padding: 12px 14px; border-radius: 12px;
+    background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; font-size: 13px; line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+  <div class="join-card" id="join-card">
+    <div class="brand">
+      <div class="mark">LS</div>
+      <div>
+        <h1>LumeShare 屏幕直播</h1>
+        <p>局域网实时屏幕画面 · 无需安装任何软件</p>
+      </div>
+    </div>
+    <div class="label">输入主播提供的 10 位房间码</div>
+    <input class="code-input" id="room-input" maxlength="10" inputmode="numeric" autocomplete="off" placeholder="10 位数字房间码">
+    <button class="join-btn" id="join-btn">进入观看</button>
+    <div class="msg" id="join-msg"></div>
+    <p class="hint">房间码由直播发起方（主播）在 LumeShare「屏幕直播」页面展示，共 <b>10 位数字</b>。<br>请确保本设备与主播电脑连接在同一个 Wi-Fi / 局域网。</p>
+  </div>
+
+  <div class="stage hidden" id="stage">
+    <div class="player-wrap" id="player-wrap">
+      <video id="player" muted playsinline autoplay></video>
+      <div class="overlay" id="overlay">
+        <div class="spinner" id="overlay-spinner"></div>
+        <p id="overlay-text">正在连接直播画面…</p>
+      </div>
+      <div class="toolbar">
+        <div class="tb-left">
+          <span class="live-dot"><i></i>LIVE</span>
+          <span class="tb-code" id="tb-code"></span>
+          <span class="tb-meta" id="tb-meta"></span>
+        </div>
+        <div class="seg" id="quality-seg">
+          <button data-q="web">流畅</button>
+          <button data-q="hd" class="on">高清</button>
+        </div>
+        <button class="icon-btn" id="btn-full" title="全屏">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-exit" title="退出观看">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="stage-foot">
+      <span><span class="name">屏幕直播</span> · <span id="foot-meta">等待画面…</span></span>
+      <span><button class="link-btn" id="btn-copy">复制观看链接</button></span>
+    </div>
+    <div class="warning hidden" id="warn-tip"></div>
+  </div>
+
+<script src="/player.js"></script>
+<script>
+(function () {
+  var state = {
+    token: '',
+    room: '',
+    hdPort: 0,
+    quality: 'hd',
+    playing: false,
+    player: null,
+    timer: null,
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var joinCard = $('join-card');
+  var stage = $('stage');
+  var video = $('player');
+  var overlay = $('overlay');
+  var overlayText = $('overlay-text');
+  var overlaySpinner = $('overlay-spinner');
+  var roomInput = $('room-input');
+  var joinMsg = $('join-msg');
+  var joinBtn = $('join-btn');
+  var tbCode = $('tb-code');
+  var tbMeta = $('tb-meta');
+  var footMeta = $('foot-meta');
+  var warnTip = $('warn-tip');
+
+  function setOverlay(show, text, spinning) {
+    overlay.classList.toggle('hidden', !show);
+    overlayText.textContent = text || '';
+    overlaySpinner.classList.toggle('hidden', spinning === false);
+  }
+  function showJoin(msg) { joinMsg.textContent = msg || ''; }
+  function api(base, pathname, options) {
+    return fetch(base + pathname, options).then(function (r) { return r.json(); });
+  }
+  function digitsOnly(v) { return String(v || '').replace(/\D/g, '').slice(0, 10); }
+  function origin() { return location.protocol + '//' + (location.port ? location.hostname + ':' + location.port : location.hostname); }
+
+  function streamUrl(quality) {
+    var key = encodeURIComponent(state.token);
+    if (quality === 'hd' && state.hdPort) {
+      return location.protocol + '//' + location.hostname + ':' + state.hdPort + '/hd/' + key;
+    }
+    return origin() + '/stream/' + key;
+  }
+
+  function startPlayback() {
+    joinCard.classList.add('hidden');
+    stage.classList.remove('hidden');
+    tbCode.textContent = state.room ? '房间码 ' + state.room : '直播中';
+    warnTip.classList.add('hidden');
+    state.playing = true;
+    if (!state.player && window.LumeLivePlayer) {
+      state.player = new window.LumeLivePlayer(video, {
+        onState: function (kind, text) {
+          if (kind === 'playing') {
+            setOverlay(false);
+            return;
+          }
+          if (kind === 'error') {
+            warnTip.classList.remove('hidden');
+            warnTip.textContent = text || '连接失败';
+            setOverlay(true, text || '连接失败', false);
+            tbMeta.textContent = '已断开';
+            return;
+          }
+          setOverlay(true, text || '正在连接…', kind === 'buffering' ? true : true);
+        },
+        onMeta: function (meta) {
+          if (meta && meta.width) {
+            state.meta = meta;
+            updateMeta();
+          }
+        },
+      });
+    }
+    if (state.player) {
+      state.player.start(streamUrl(state.quality));
+    } else {
+      setOverlay(true, '当前浏览器不支持视频直播', false);
+    }
+    if (state.timer) clearInterval(state.timer);
+    state.timer = setInterval(pollStatus, 5000);
+    pollStatus();
+  }
+
+  function updateMeta() {
+    var parts = [];
+    var m = state.meta || {};
+    if (m.width) parts.push(m.width + '×' + m.height);
+    if (m.mime) {
+      var codec = /vp9/i.test(m.mime) ? 'VP9' : /vp8/i.test(m.mime) ? 'VP8' : '视频';
+      parts.push(codec);
+    }
+    if (m.bitrate) parts.push(Math.round(m.bitrate / 1000000) + ' Mbps');
+    if (state.viewers != null) parts.push(state.viewers + ' 人观看');
+    var text = parts.join(' · ');
+    if (text) {
+      tbMeta.textContent = text;
+      footMeta.textContent = text;
+    }
+  }
+
+  function pollStatus() {
+    api(origin(), '/api/live/status')
+      .then(function (s) {
+        if (!s || !s.running) {
+          state.viewers = 0;
+          if (state.player) state.player.stop();
+          setOverlay(true, '主播已结束直播', false);
+          tbMeta.textContent = '直播已结束';
+          return;
+        }
+        if (!state.hdPort && s.hdPort) state.hdPort = s.hdPort;
+        state.viewers = s.viewers ? s.viewers.total : 0;
+        updateMeta();
+      })
+      .catch(function () { /* 网络抖动忽略 */ });
+  }
+
+  function checkRoom(code) {
+    joinBtn.disabled = true;
+    showJoin('正在校验房间码…');
+    api(origin(), '/api/live/config')
+      .then(function (cfg) {
+        if (cfg && cfg.hdPort) state.hdPort = cfg.hdPort;
+        return api(origin(), '/api/live/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: code }),
+        });
+      })
+      .then(function (res) {
+        joinBtn.disabled = false;
+        if (!res || !res.ok) {
+          showJoin((res && res.error) || '房间码校验失败，请重试');
+          return;
+        }
+        state.token = res.token;
+        state.room = code;
+        showJoin('');
+        startPlayback();
+      })
+      .catch(function () {
+        joinBtn.disabled = false;
+        showJoin('无法连接主播电脑，请确认网络后重试');
+      });
+  }
+
+  roomInput.addEventListener('input', function () {
+    roomInput.value = digitsOnly(roomInput.value);
+    if (joinMsg.textContent && joinMsg.textContent.indexOf('房间码') >= 0) showJoin('');
+  });
+  roomInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') submitRoom();
+  });
+  joinBtn.addEventListener('click', submitRoom);
+
+  function submitRoom() {
+    var code = digitsOnly(roomInput.value);
+    if (code.length !== 10) {
+      showJoin('请输入主播提供的 10 位数字房间码');
+      return;
+    }
+    checkRoom(code);
+  }
+
+  document.getElementById('quality-seg').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-q]');
+    if (!btn || !state.playing) return;
+    var q = btn.getAttribute('data-q');
+    if (q === state.quality) return;
+    state.quality = q;
+    Array.prototype.forEach.call(this.querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b === btn);
+    });
+    if (state.player) {
+      setOverlay(true, '正在切换清晰度…', true);
+      state.player.start(streamUrl(q));
+    }
+  });
+
+  document.getElementById('btn-full').addEventListener('click', function () {
+    var wrap = document.getElementById('player-wrap');
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(function () {});
+      return;
+    }
+    var fn = wrap.requestFullscreen || wrap.webkitRequestFullscreen;
+    if (fn) {
+      var r = fn.call(wrap);
+      if (r && r.catch) r.catch(function () {});
+    }
+  });
+
+  document.getElementById('btn-exit').addEventListener('click', function () {
+    state.playing = false;
+    if (state.timer) clearInterval(state.timer);
+    if (state.player) state.player.stop();
+    stage.classList.add('hidden');
+    joinCard.classList.remove('hidden');
+    showJoin('');
+    roomInput.focus();
+  });
+
+  document.getElementById('btn-copy').addEventListener('click', function () {
+    var url = location.origin + '/' + state.token;
+    var done = function () { footMeta.textContent = '观看链接已复制'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, done);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+      done();
+    }
+  });
+
+  (function boot() {
+    var path = decodeURIComponent(location.pathname || '/').replace(/^\/+/, '');
+    var m = /^([A-Za-z0-9]{38})$/.exec(path);
+    var q = new URLSearchParams(location.search);
+    if (m) {
+      state.token = m[1];
+      state.room = '';
+      api(origin(), '/api/live/config')
+        .then(function (cfg) {
+          if (cfg && cfg.hdPort) state.hdPort = cfg.hdPort;
+          startPlayback();
+        })
+        .catch(function () { startPlayback(); });
+      return;
+    }
+    var presetCode = digitsOnly(q.get('code') || q.get('room') || '');
+    if (presetCode.length === 10) {
+      roomInput.value = presetCode;
+      checkRoom(presetCode);
+      return;
+    }
+    roomInput.focus();
+  })();
+})();
+</script>
+</body>
+</html>

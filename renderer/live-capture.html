@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'">
+<title>LumeShare 画面采集</title>
+<style>
+  html, body, video { margin: 0; width: 100%; height: 100%; background: #000; }
+  video { object-fit: contain; display: block; }
+</style>
+</head>
+<body>
+<video id="src" muted playsinline autoplay></video>
+<script>
+(function () {
+  var api = window.liveCapture;
+  var video = document.getElementById('src');
+  var stream = null;
+  var cfg = {
+    sourceId: '',
+    fps: 24,
+    hdBitrate: 10000000,
+    webBitrate: 2500000,
+  };
+  var readySent = false;
+  // 每个观看者单独一个 MediaRecorder：每个会话都从关键帧开始，接入即可出画
+  var viewers = {};
+
+  function pickMime() {
+    // VP8 编码开销远低于 VP9，屏幕内容画质同样清晰，优先使用
+    var list = ['video/webm;codecs=vp8', 'video/webm;codecs=vp9', 'video/webm'];
+    for (var i = 0; i < list.length; i++) {
+      try {
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported(list[i])) return list[i];
+      } catch (e) {
+        /* ignore */
+      }
+    }
+    return '';
+  }
+
+  function sourceSize() {
+    if (!stream) return { w: 0, h: 0 };
+    var track = stream.getVideoTracks()[0];
+    var s = track && track.getSettings ? track.getSettings() : {};
+    return { w: video.videoWidth || s.width || 0, h: video.videoHeight || s.height || 0 };
+  }
+
+  function reportProfile() {
+    var size = sourceSize();
+    if (!size.w || !size.h) return;
+    api.report('profile', {
+      sourceW: size.w,
+      sourceH: size.h,
+      hdW: size.w,
+      hdH: size.h,
+      mime: pickMime(),
+    });
+    if (!readySent) {
+      readySent = true;
+      api.report('ready', { width: size.w, height: size.h, hdW: size.w, hdH: size.h });
+    }
+  }
+
+  function sendMeta(viewerId, entry) {
+    var size = sourceSize();
+    var meta = {
+      mime: entry.recorder.mimeType || pickMime(),
+      width: size.w,
+      height: size.h,
+      quality: entry.kind,
+      fps: cfg.fps,
+      bitrate: entry.kind === 'web' ? cfg.webBitrate : cfg.hdBitrate,
+    };
+    api.frame(viewerId, 1, new TextEncoder().encode(JSON.stringify(meta)).buffer);
+  }
+
+  function startViewer(viewerId, quality) {
+    if (!stream || !viewerId || viewers[viewerId]) return;
+    if (!window.MediaRecorder) {
+      api.report('error', { message: '当前环境不支持视频编码，无法开启直播' });
+      return;
+    }
+    var kind = quality === 'web' ? 'web' : 'hd';
+    var mime = pickMime();
+    var options = { videoBitsPerSecond: kind === 'web' ? cfg.webBitrate : cfg.hdBitrate };
+    if (mime) options.mimeType = mime;
+    var rec;
+    try {
+      rec = new MediaRecorder(stream, options);
+    } catch (e) {
+      api.report('error', { message: '视频编码器启动失败：' + ((e && e.message) || '') });
+      return;
+    }
+    var entry = { recorder: rec, initSent: false, kind: kind };
+    viewers[viewerId] = entry;
+    rec.ondataavailable = function (e) {
+      if (!e.data || !e.data.size) return;
+      e.data.arrayBuffer().then(function (buf) {
+        if (viewers[viewerId] !== entry || !buf || !buf.byteLength) return;
+        if (!entry.initSent) {
+          entry.initSent = true;
+          api.frame(viewerId, 2, buf);
+        } else {
+          api.frame(viewerId, 3, buf);
+        }
+      });
+    };
+    rec.onerror = function (e) {
+      api.report('error', { message: '画面编码异常：' + ((e && e.error && e.error.message) || '') });
+    };
+    try {
+      rec.start(150);
+    } catch (e) {
+      api.report('error', { message: '画面推流启动失败：' + ((e && e.message) || '') });
+      delete viewers[viewerId];
+      return;
+    }
+    sendMeta(viewerId, entry);
+  }
+
+  function stopViewer(viewerId) {
+    var entry = viewers[viewerId];
+    if (!entry) return;
+    delete viewers[viewerId];
+    try {
+      entry.recorder.ondataavailable = null;
+      entry.recorder.onerror = null;
+      if (entry.recorder.state !== 'inactive') entry.recorder.stop();
+    } catch (e) { /* ignore */ }
+  }
+
+  function stopAll() {
+    Object.keys(viewers).forEach(stopViewer);
+    viewers = {};
+    if (stream) {
+      try {
+        stream.getTracks().forEach(function (t) { t.stop(); });
+      } catch (e) { /* ignore */ }
+      stream = null;
+    }
+    try {
+      video.srcObject = null;
+    } catch (e) { /* ignore */ }
+  }
+
+  function openSource(cfgIn) {
+    var changedSource = cfgIn && cfgIn.sourceId && cfgIn.sourceId !== cfg.sourceId;
+    var wasStreaming = !!stream;
+    cfg = Object.assign(cfg, cfgIn);
+    if (!changedSource && wasStreaming) {
+      reportProfile();
+      return;
+    }
+    stopAll();
+    readySent = false;
+    if (!cfg.sourceId) return;
+    var constraints = {
+      audio: false,
+      video: {
+        mandatory: {
+          chromeMediaSource: 'desktop',
+          chromeMediaSourceId: cfg.sourceId,
+          maxWidth: 3840,
+          maxHeight: 2160,
+          maxFrameRate: 30,
+        },
+      },
+    };
+    navigator.mediaDevices
+      .getUserMedia(constraints)
+      .then(function (s) {
+        stream = s;
+        video.srcObject = s;
+        var playing = video.play();
+        if (playing && playing.catch) playing.catch(function () {});
+        video.onloadedmetadata = reportProfile;
+        setTimeout(reportProfile, 600);
+        setTimeout(reportProfile, 1800);
+      })
+      .catch(function (e) {
+        api.report('error', { message: (e && e.message) || '无法采集屏幕画面' });
+      });
+  }
+
+  if (api) {
+    api.onConfig(openSource);
+    api.onStop(stopAll);
+    api.onViewerStart(function (payload) {
+      if (payload) startViewer(payload.viewerId, payload.quality);
+    });
+    api.onViewerStop(stopViewer);
+  }
+})();
+</script>
+</body>
+</html>

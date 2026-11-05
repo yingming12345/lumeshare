@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-src 'self'; connect-src 'self'; object-src 'none'">
+<title>LumeShare 文件分享</title>
+<link rel="icon" href="/static/icon.png">
+<style>
+  /* LumeShare 文件分享网页端 · 亮色主题（蓝 + 白） */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: linear-gradient(160deg, #eaf1fe 0%, #f8fbff 55%, #eaf1fe 100%);
+    color: #1e293b;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* 顶部品牌条（铺满全宽） */
+  .topbar {
+    width: 100%;
+    background: linear-gradient(90deg, rgba(37,99,235,.1), rgba(37,99,235,.03));
+    border-bottom: 1px solid rgba(37,99,235,.14);
+    backdrop-filter: blur(6px);
+    padding: 14px 5vw;
+    display: flex;
+    align-items: center;
+    flex: none;
+  }
+  .topbar .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .topbar .logo { width: 40px; height: 40px; border-radius: 10px; flex: none; }
+  .topbar h1 { font-size: 19px; font-weight: 700; letter-spacing: .3px; color: #1e293b; }
+  .topbar .tag { font-size: 12.5px; color: #64748b; margin-top: 2px; }
+
+  /* 主内容：双栏网格 */
+  .main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(340px, 1fr) minmax(340px, 1fr);
+    gap: 24px;
+    width: 100%;
+    padding: 26px 5vw 34px;
+    align-content: start;
+    min-height: 0;
+  }
+  @media (max-width: 860px) { .main { grid-template-columns: 1fr; } }
+  .card {
+    background: rgba(255,255,255,.92);
+    border: 1px solid rgba(37,99,235,.14);
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(37,99,235,.12);
+    padding: 24px 26px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .section-title { font-size: 14px; font-weight: 650; margin-bottom: 16px; display: flex; align-items: center; gap: 9px; color: #1e293b; }
+  .section-title .bar { width: 4px; height: 16px; border-radius: 2px; background: #3b82f6; }
+  .hint { font-size: 12.5px; color: #94a3b8; }
+  .code-row { display: flex; gap: 10px; margin-top: 4px; }
+  input.code {
+    flex: 1; min-width: 0; height: 50px; font-size: 18px; letter-spacing: 8px;
+    background: #ffffff;
+    border: 1px solid rgba(100,116,139,.32); border-radius: 13px; padding: 0 12px;
+    outline: none; text-align: center; color: #0f172a;
+    font-variant-numeric: tabular-nums; -webkit-appearance: none; appearance: none;
+    caret-color: #3b82f6;
+  }
+  input.code::placeholder { letter-spacing: 1px; font-size: 14px; color: #94a3b8; }
+  input.code:focus { border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59,130,246,.16); }
+  button {
+    font-family: inherit; cursor: pointer; border: none; border-radius: 13px;
+    height: 50px; padding: 0 24px; font-size: 15px; font-weight: 650;
+    transition: all .15s; -webkit-tap-highlight-color: transparent; color: #fff;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  button.primary { background: linear-gradient(135deg, #2563eb, #3b82f6); box-shadow: 0 8px 24px rgba(37,99,235,.3); }
+  button.primary:hover:not(:disabled) { background: linear-gradient(135deg, #1d4ed8, #2563eb); transform: translateY(-1px); }
+  button.ghost { background: rgba(59,130,246,.1); color: #2563eb; border: 1px solid rgba(59,130,246,.3); }
+  button.ghost:hover:not(:disabled) { background: rgba(59,130,246,.2); }
+  .err { color: #dc2626; font-size: 13px; margin-top: 10px; min-height: 18px; }
+  #result { margin-top: 14px; }
+  .file-card {
+    display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+    background: #ffffff; border: 1px solid rgba(37,99,235,.14);
+    border-radius: 14px; margin-top: 12px;
+  }
+  .file-icon { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex: none; }
+  .file-icon svg { width: 22px; height: 22px; }
+  .file-main { flex: 1; min-width: 0; }
+  .file-name { font-size: 14.5px; font-weight: 650; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-sub { font-size: 12.5px; color: #64748b; margin-top: 3px; }
+  .file-actions { display: flex; gap: 8px; flex: none; }
+  .file-actions button { height: 40px; padding: 0 16px; font-size: 13.5px; }
+  .upload-box {
+    border: 1.6px dashed rgba(37,99,235,.35); border-radius: 16px; padding: 30px 20px;
+    text-align: center; cursor: pointer; transition: all .18s; flex: none;
+  }
+  .upload-box:hover, .upload-box.drag { border-color: #3b82f6; background: rgba(59,130,246,.07); }
+  .upload-box .up-icon { width: 46px; height: 46px; margin: 0 auto 10px; border-radius: 13px; background: rgba(59,130,246,.12); color: #2563eb; display: flex; align-items: center; justify-content: center; }
+  .upload-box .big { font-size: 15px; font-weight: 600; color: #334155; }
+  .upload-box .small { font-size: 12.5px; color: #64748b; margin-top: 5px; }
+  .code-ok { text-align: center; padding: 18px 0 8px; }
+  .code-ok .ok-icon { width: 54px; height: 54px; margin: 0 auto 8px; border-radius: 50%; background: rgba(16,185,129,.16); color: #10b981; display: flex; align-items: center; justify-content: center; }
+  .code-ok .code {
+    font-size: 34px; font-weight: 750; letter-spacing: 10px; color: #1d4ed8;
+    background: rgba(37,99,235,.08); border: 1px solid rgba(59,130,246,.28);
+    border-radius: 14px; padding: 10px 20px; display: inline-block; margin: 10px 0;
+  }
+  .code-ok .note { font-size: 12.5px; color: #94a3b8; }
+  .preview-box { margin-top: 14px; padding: 10px; background: #f1f5fb; border: 1px solid rgba(37,99,235,.12); border-radius: 14px; display: block; clear: both; }
+  .preview-box img { max-width: 100%; max-height: 62vh; display: block; margin: 0 auto; border-radius: 10px; border: 1px solid rgba(148,163,184,.2); background: #fff; object-fit: contain; }
+  .preview-box video { max-width: 100%; max-height: 62vh; display: block; margin: 0 auto; border-radius: 10px; background: #000; }
+  .preview-box iframe { width: 100%; height: 60vh; border: 1px solid rgba(148,163,184,.2); border-radius: 12px; background: #fff; display: block; }
+  .preview-box .doc { background: #fff; color: #1b2434; border: 1px solid rgba(148,163,184,.2); border-radius: 12px; padding: 18px; max-height: 62vh; overflow: auto; }
+  .footer {
+    flex: none;
+    width: 100%;
+    text-align: center;
+    font-size: 12px; color: #94a3b8;
+    padding: 12px 0 16px;
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <img class="logo" src="/static/icon.png" alt="LumeShare">
+      <div>
+        <h1>LumeShare 文件分享</h1>
+        <div class="tag">同一局域网内安全传输 · 全程本地运行</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="card">
+      <div class="section-title"><span class="bar"></span>获取文件</div>
+      <div class="code-row">
+        <input class="code" id="code" maxlength="6" inputmode="numeric" placeholder="输入提取码" autocomplete="off">
+        <button class="primary" id="get-btn">获取</button>
+      </div>
+      <div class="hint" style="margin-top:10px">提取码由分享方提供，仅限当前局域网内使用</div>
+      <div class="err" id="err"></div>
+      <div id="result"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title"><span class="bar"></span>上传文件给局域网好友</div>
+      <div class="upload-box" id="drop">
+        <div class="up-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5"/><path d="M7 10l5-5 5 5"/><path d="M5 17v1.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V17"/></svg></div>
+        <div class="big">点击选择文件，或拖拽、粘贴到此处</div>
+        <div class="small">文件大小不限 · 自动生成 6 位提取码</div>
+        <input type="file" id="file" style="display:none">
+      </div>
+      <div id="up-result"></div>
+    </div>
+  </div>
+
+  <div class="footer">LumeShare · 文件仅在本机局域网内传输 · 传输完成后请及时关闭页面</div>
+
+<script src="/static/docx-preview.js"></script>
+<script>
+(function () {
+  var codeEl = document.getElementById('code');
+  var getBtn = document.getElementById('get-btn');
+  var errEl = document.getElementById('err');
+  var resultEl = document.getElementById('result');
+  var drop = document.getElementById('drop');
+  var fileInput = document.getElementById('file');
+
+  codeEl.addEventListener('input', function () {
+    codeEl.value = codeEl.value.replace(/\D/g, '').slice(0, 6);
+    errEl.textContent = '';
+  });
+  codeEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') doGet(); });
+  codeEl.addEventListener('focus', function () { codeEl.select(); });
+  getBtn.addEventListener('click', function () { doGet(); });
+
+  // 链接自带提取码时自动填充
+  (function () {
+    try {
+      var q = new URLSearchParams(window.location.search);
+      var c = (q.get('code') || '').replace(/\D/g, '').slice(0, 6);
+      if (/^\d{6}$/.test(c)) {
+        codeEl.value = c;
+        codeEl.focus();
+        codeEl.select();
+      }
+    } catch (e) { /* 忽略解析错误 */ }
+  })();
+
+  function typeOf(name) {
+    var e = (name.split('.').pop() || '').toLowerCase();
+    if (/^(jpg|jpeg|png|gif|bmp|webp|svg|ico|tif|tiff|avif|heic|jfif)$/.test(e)) return 'image';
+    if (/^(mp4|mkv|webm|mov|avi|m4v|flv|wmv|ts|m2ts|mpg|mpeg|3gp|rmvb|rm|vob)$/.test(e)) return 'video';
+    if (e === 'pdf') return 'pdf';
+    if (/^(doc|docx|docm|dot|dotx|rtf|wps|wpt)$/.test(e)) return 'word';
+    return 'other';
+  }
+
+  function fmtSize(n) {
+    if (!n) return '0 B';
+    var u = ['B','KB','MB','GB','TB'], i = 0, v = n;
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return (i === 0 ? v : v.toFixed(1)) + ' ' + u[i];
+  }
+
+  function doGet() {
+    var code = codeEl.value.trim();
+    if (!/^\d{6}$/.test(code)) { errEl.textContent = '请输入 6 位数字提取码'; return; }
+    getBtn.disabled = true;
+    getBtn.textContent = '获取中…';
+    errEl.textContent = '';
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, 12000);
+    fetch('/api/info/' + code, { signal: ctrl.signal }).then(function (r) {
+      if (r.status === 404) { throw new Error('提取码不存在或已过期'); }
+      return r.json();
+    }).then(function (info) {
+      resultEl.innerHTML = '';
+      var card = document.createElement('div');
+      var kind = typeOf(info.name);
+      var colors = { image: '#dbeafe', video: '#ede9fe', pdf: '#fee2e2', word: '#dcfce7', other: '#eef2f7' };
+      var colorsMap = { image: '#2563eb', video: '#7c3aed', pdf: '#dc2626', word: '#16a34a', other: '#64748b' };
+      var svgs = {
+        image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M4 17.5l4.5-4.5 3 3 3.5-3.5 5 5"/></svg>',
+        video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="13" height="13" rx="2.5"/><path d="M15.5 10.5l6-3.5v10l-6-3.5"/></svg>',
+        pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7L19 8.5V20a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 6 20V5A1.5 1.5 0 0 1 7 3.5z"/><path d="M13.5 3.5V9H19"/><path d="M8.5 14.5h7M8.5 17h4.5"/></svg>',
+        word: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7L19 8.5V20a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 6 20V5A1.5 1.5 0 0 1 7 3.5z"/><path d="M13.5 3.5V9H19"/><path d="M9.5 12.5l1.2 4 1.3-4 1.3 4 1.2-4"/></svg>',
+        other: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7L19 8.5V20a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 6 20V5A1.5 1.5 0 0 1 7 3.5z"/><path d="M13.5 3.5V9H19"/></svg>'
+      };
+      card.className = 'file-card';
+      card.innerHTML =
+        '<div class="file-icon" style="background:' + colors[kind] + ';color:' + colorsMap[kind] + '">' + svgs[kind] + '</div>' +
+        '<div class="file-main"><div class="file-name"></div><div class="file-sub"></div></div>' +
+        '<div class="file-actions"><button class="ghost" id="pv-btn">预览</button>' +
+        '<button class="primary" id="dl-btn">下载</button></div>';
+      card.querySelector('.file-name').textContent = info.name;
+      card.querySelector('.file-sub').textContent = fmtSize(info.size) + ' · 上传于 ' + new Date(info.uploadAt).toLocaleString('zh-CN');
+      resultEl.appendChild(card);
+      card.querySelector('#dl-btn').addEventListener('click', function () {
+        window.location.href = '/api/file/' + code + '?download=1';
+      });
+      var pvBtn = card.querySelector('#pv-btn');
+      if (kind === 'other') { pvBtn.style.display = 'none'; }
+      pvBtn.addEventListener('click', function () { showPreview(kind, info, code, card); });
+    }).catch(function (e) {
+      errEl.textContent = e.name === 'AbortError' ? '连接超时，请检查网络后重试' : (e.message || '获取失败');
+    }).finally(function () {
+      clearTimeout(timer);
+      getBtn.disabled = false;
+      getBtn.textContent = '获取';
+    });
+  }
+
+  function showPreview(kind, info, code, card) {
+    var old = card.parentNode.querySelector('.preview-box');
+    if (old) old.remove();
+    var box = document.createElement('div');
+    box.className = 'preview-box';
+    if (kind === 'image') {
+      var img = document.createElement('img');
+      img.src = '/api/file/' + code;
+      box.appendChild(img);
+    } else if (kind === 'video') {
+      var video = document.createElement('video');
+      video.src = '/api/file/' + code;
+      video.controls = true;
+      video.autoplay = false;
+      box.appendChild(video);
+    } else if (kind === 'pdf') {
+      var fr = document.createElement('iframe');
+      fr.src = '/api/file/' + code;
+      box.appendChild(fr);
+    } else if (kind === 'word') {
+      var wrap = document.createElement('div');
+      wrap.className = 'doc';
+      box.appendChild(wrap);
+      fetch('/api/file/' + code).then(function (r) { return r.blob(); }).then(function (blob) {
+        return docx.renderAsync(blob, wrap, null, { inWrapper: false, experimental: true });
+      }).catch(function () {
+        wrap.textContent = '文档预览失败，请直接下载后用 Office 打开';
+        wrap.style.color = '#b4232c';
+        wrap.style.padding = '20px';
+      });
+    } else {
+      return;
+    }
+    card.parentNode.insertBefore(box, card.nextSibling);
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  drop.addEventListener('click', function () { fileInput.click(); });
+  ['dragenter','dragover'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('drag'); });
+  });
+  ['dragleave','drop'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('drag'); });
+  });
+  drop.addEventListener('drop', function (e) {
+    if (e.dataTransfer && e.dataTransfer.files.length) upload(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files.length) upload(fileInput.files[0]);
+    fileInput.value = '';
+  });
+  window.addEventListener('paste', function (e) {
+    if (e.clipboardData && e.clipboardData.files.length) upload(e.clipboardData.files[0]);
+  });
+
+  function upload(file) {
+    var box = document.getElementById('up-result');
+    box.innerHTML = '<div class="hint">正在上传…</div>';
+    fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'x-file-name': encodeURIComponent(file.name) },
+      body: file
+    }).then(function (r) { return r.json(); }).then(function (json) {
+      if (!json.code) throw new Error(json.error || '上传失败');
+      box.innerHTML =
+        '<div class="code-ok"><div class="ok-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>' +
+        '<div>上传成功</div><div class="code">' + json.code + '</div>' +
+        '<div class="note">' + json.name + ' · ' + json.sizeText + '</div>' +
+        '<div class="note" style="margin-top:6px">将提取码发给同一局域网内的好友</div></div>';
+    }).catch(function (e) {
+      box.innerHTML = '<div class="err">' + (e.message || '上传失败') + '</div>';
+    });
+  }
+})();
+</script>
+</body>
+</html>

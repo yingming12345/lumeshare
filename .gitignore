@@ -1,0 +1,9 @@
+node_modules/
+renderer/dist/
+dist/
+*.log
+.DS_Store
+Thumbs.db
+.electron-builder-cache/
+.electron-cache/
+.npm-cache/
