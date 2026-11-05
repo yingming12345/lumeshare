@@ -9,8 +9,9 @@ const http = require('http');
 const { app, BrowserWindow, ipcMain } = require('electron');
 const logger = require('./logger');
 
-const MUSIC_URL = process.env.LUMESHARE_BGM_URL || '';
-const CLIENT_UA = 'LumeShare-Client/2.0.3';
+const MUSIC_URL =
+  'https://223-109-125-229-v3.pd1.cjjd19.com/vip-download-cdn.123295.com/123-118/8d433757/1856515061-0/8d43375705dac99c3682245a4901fc76/c-m8012?r=0BW917&bzc=1&bi=2482051932&ur=vvbgvppgblgpb&v=5&t=1789809766&bzs=313835363531353036313a323a313a36323839373431&bzp=0&urn=1&s=178980976646446425ae0e5f5b27282c5d0fdb8528&filename=001111.mp3&cache_type=2&x-mf-biz-cid=3584a4bb-9f6d-4ace-90c9-3070ec357add&auto_redirect=0&ndcp=1';
+const CLIENT_UA = 'LumeShare-Client/2.0.4';
 const MIN_BYTES = 64 * 1024; // 小于该体积视为无效文件
 const VOLUME = 0.7; // 默认音量（避免过响影响用户）
 
