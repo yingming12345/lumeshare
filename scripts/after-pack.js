@@ -20,8 +20,8 @@ exports.default = async function (context) {
     '--set-version-string', 'CompanyName', 'LumeShare',
     '--set-version-string', 'LegalCopyright', 'Copyright © 2025 LumeShare',
     '--set-version-string', 'OriginalFilename', 'LumeShare.exe',
-    '--set-file-version', '2.0.3',
-    '--set-product-version', '2.0.3',
+    '--set-file-version', '2.0.4',
+    '--set-product-version', '2.0.4',
   ];
 
   await new Promise((resolve, reject) => {

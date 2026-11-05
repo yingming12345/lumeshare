@@ -25,7 +25,7 @@
 > 1. **GitHub Release 与网盘**提供的是同一份官方安装包，包含完整功能（含在线更新与官方服务接口）；安装包与本仓库源码构建出的版本可能存在差异；
 > 2. **源码渠道**只包含核心功能源码（局域网分享 / 文件库 / 屏幕直播），私有接口地址、更新 Token、日志加密种子等一律未开源，自行构建的版本不会连接任何第三方服务；
 > 3. 为保障安全，请只从**官网、本仓库 GitHub Release 或上述官方网盘**获取程序，**不要使用来源不明的二次打包版本**；
-> 4. 下载后请确认文件名形如 `LumeShare-Setup-<版本号>.exe`（当前版本 **2.0.3**），系统要求为 Windows 10 / 11 64 位；
+> 4. 下载后请确认文件名形如 `LumeShare-Setup-<版本号>.exe`（当前版本 **2.0.4**），系统要求为 Windows 10 / 11 64 位；
 > 5. 建议核对 SHA-256：GitHub Release 同时提供 `LumeShare-Setup-<版本号>.exe.sha256` 校验文件；
 > 6. 若链接失效、下载异常或发现异常文件，请在 [Issues](https://github.com/yingming12345/lumeshare/issues) 反馈，我们会尽快更新。
 
@@ -59,7 +59,7 @@
 
 - 缩略图缓存位置与上限、启动扫描、启动自动开启分享、开机自启、关闭到托盘
 - 操作日志：本地记录，可「下载日志」保存为加密的 `.lslog` 文件
-- 检查更新：开源版默认关闭，需自行配置更新接口（见「配置说明」）
+- 检查更新：开源版默认关闭，需自行在 `shared/vault.js` 中提供接口地址与令牌（见「配置说明」）
 
 ## 系统要求
 
@@ -106,12 +106,12 @@ npm run dist         # 生成 Windows 安装包（dist/LumeShare-Setup-<version>
 
 ## 配置说明
 
-开源版本**不内置任何私有服务地址与密钥**，以下内容需要自行配置（`shared/endpoints.js`）：
+开源版本**不内置任何私有服务地址与密钥**。公开配置位于 `shared/endpoints.js`：
 
 ```js
 module.exports = {
-  API_BASE: '',        // 官方 API 根地址（留空则关闭在线更新）
-  UPDATE_API: '',      // 客户端更新接口（留空则「检查更新」提示未配置）
+  API_VERSION: 1,
+  OFFICIAL_SITE: 'https://ls.fur-myu.cn/',
   FEEDBACK_FORM_URL: 'https://github.com/yingming12345/lumeshare/issues',
   // 局域网分享协议
   SHARE_SERVICE_PORT: 16888,
@@ -120,11 +120,23 @@ module.exports = {
 };
 ```
 
+在线更新所需的**接口地址与访问令牌**由 `shared/vault.js` 提供。开源版该文件为无数据空桩：
+
+```js
+// shared/vault.js（开源版空桩）
+function get(name) {
+  return null; // 如需在线更新，请返回 { url: 'https://your-server/api/latest.php', token: 'YOUR_TOKEN' }
+}
+module.exports = { get };
+```
+
+> 官方客户端会把接口地址与令牌用 **AES-256-GCM** 加密后再打包，运行时才在内存中解密；
+> 开源版不包含任何真实地址与令牌，因此「检查更新」会提示未配置，属预期行为。
+
 其它可通过环境变量覆盖的配置：
 
 | 环境变量 | 作用 | 默认值 |
 | --- | --- | --- |
-| `LUMESHARE_UPDATE_TOKEN` | 更新接口鉴权 Token | 空 |
 | `LUMESHARE_BGM_URL` | 背景音乐直链（留空则关闭该功能） | 空 |
 | `LUMESHARE_LOG_SEED` / `LUMESHARE_LOG_SALT` | 日志加密种子 | 示例值 |
 
@@ -147,7 +159,7 @@ A：确认手机与电脑在同一 Wi-Fi（同一网段），并在 Windows 防�
 A：分享服务在 `16888` 被占用时会自动回退到可用端口，实际地址以界面显示为准；直播服务会依次尝试 `16900/16901` 之后的端口。
 
 **Q：检查更新提示“未配置更新服务”？**
-A：开源版未内置更新接口，属预期行为；如需该功能请自行部署服务并在 `shared/endpoints.js` 中配置。
+A：开源版 `shared/vault.js` 为空桩，不包含任何更新服务地址与令牌，属预期行为；如需该功能请自行部署服务并实现 `vault.get()` 返回 `{ url, token }`。
 
 **Q：自行构建的版本与网盘安装包有何区别？**
 A：网盘安装包包含作者配置的在线更新与服务接口；自行构建版本只包含本仓库源码，不连接任何第三方服务，核心的分享、文件库、直播功能完全一致。

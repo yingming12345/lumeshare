@@ -1,5 +1,5 @@
 // 更新检测与自动安装：通过官方接口获取最新下载链接与验证码，验证码变化即代表新版本
-// API Token 只保存在主进程，绝不下发渲染层
+// 接口地址与访问令牌存放在加密保险箱（shared/vault.js）中，仅在主进程内存中解密
 const https = require('https');
 const http = require('http');
 const fs = require('fs');
@@ -8,28 +8,52 @@ const { execFileSync } = require('child_process');
 const { app } = require('electron');
 const settings = require('./settings');
 const logger = require('./logger');
-const endpoints = require('../shared/endpoints');
+const vault = require('../shared/vault');
 
-// 开源版不内置任何 Token：如需在线更新，请通过环境变量或自行修改此处注入
-const API_TOKEN = process.env.LUMESHARE_UPDATE_TOKEN || '';
-const UPDATE_API = endpoints.UPDATE_API;
-const CLIENT_UA = 'LumeShare-Client/2.0.3';
+const CLIENT_UA = 'LumeShare-Client/2.0.4';
+const MAX_BODY = 512 * 1024;
 
-function httpGetJson(url, timeoutMs) {
+// 取出并校验更新服务配置（解密失败或未配置时返回 null）
+function apiConfig() {
+  const cfg = vault.get('update');
+  if (!cfg || typeof cfg.url !== 'string' || typeof cfg.token !== 'string') return null;
+  if (!/^https:\/\/[a-z0-9.-]+\/[a-z0-9/._-]+$/i.test(cfg.url)) return null;
+  if (!/^[a-f0-9]{32,64}$/i.test(cfg.token)) return null;
+  return cfg;
+}
+
+// 统一清理错误文案：绝不把接口地址、域名或令牌带进日志与界面
+function safeError(err) {
+  const text = String((err && err.message) || err || '');
+  return text.replace(/https?:\/\/\S+/gi, '').replace(/[a-z0-9-]+(\.[a-z0-9-]+)+\S*/gi, '').trim() || '网络请求失败';
+}
+
+function httpGetJson(url, timeoutMs, extraHeaders) {
   return new Promise((resolve, reject) => {
     const mod = url.startsWith('https:') ? https : http;
     const req = mod.get(
       url,
-      { timeout: timeoutMs || 15000, headers: { 'User-Agent': CLIENT_UA, 'X-Token': API_TOKEN } },
+      {
+        timeout: timeoutMs || 15000,
+        headers: Object.assign({ 'User-Agent': CLIENT_UA, Accept: 'application/json' }, extraHeaders || {}),
+      },
       (res) => {
         const chunks = [];
-        res.on('data', (c) => chunks.push(c));
+        let size = 0;
+        res.on('data', (c) => {
+          size += c.length;
+          if (size > MAX_BODY) {
+            req.destroy(new Error('响应过大'));
+            return;
+          }
+          chunks.push(c);
+        });
         res.on('end', () => {
           resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8') });
         });
       }
     );
-    req.on('error', reject);
+    req.on('error', () => reject(new Error('无法连接更新服务器，请检查网络后重试')));
     req.on('timeout', () => {
       req.destroy(new Error('连接更新服务器超时'));
     });
@@ -58,25 +82,30 @@ function cmpVersion(a, b) {
 }
 
 async function checkUpdate() {
-  if (!UPDATE_API) throw new Error('开源版未内置更新服务，请自行配置 UPDATE_API');
+  const cfg = apiConfig();
+  if (!cfg) throw new Error(safeError('更新服务暂不可用，请稍后重试'));
   const version = apiVersion();
-  // Token 通过请求头传递，不出现在 URL 中（避免被日志、代理记录）
-  const res = await httpGetJson(UPDATE_API + '?version=' + encodeURIComponent(version));
-  if (res.status !== 200) throw new Error('更新服务器响应异常（HTTP ' + res.status + '）');
+  // 令牌通过请求头传递，不放入 URL，避免出现在代理与访问日志中
+  const res = await httpGetJson(
+    cfg.url + '?version=' + encodeURIComponent(version),
+    15000,
+    { 'X-Token': cfg.token }
+  );
+  if (res.status !== 200) throw new Error(safeError('更新服务器响应异常（HTTP ' + res.status + '）'));
   let json;
   try {
     json = JSON.parse(res.body);
   } catch {
-    throw new Error('更新服务器返回数据无法解析');
+    throw new Error(safeError('更新服务器返回数据无法解析'));
   }
   if (json.code !== 0 || !json.data) {
     if (json.code === 429) {
       const left = json.data && json.data.remaining_seconds;
       throw new Error('请求过于频繁，请稍后再试' + (left ? '（' + left + ' 秒后重试）' : ''));
     }
-    if (json.code === 401) throw new Error('更新服务鉴权失败，请联系管理员');
-    if (json.code === 400) throw new Error(json.message || '版本号格式不正确');
-    throw new Error(json.message || '更新服务器返回错误');
+    if (json.code === 401) throw new Error(safeError('更新服务鉴权失败，请联系管理员'));
+    if (json.code === 400) throw new Error(safeError(json.message || '版本号格式不正确'));
+    throw new Error(safeError(json.message || '更新服务器返回错误'));
   }
   // 新接口由服务端比对版本号：data.update === 'yes' 表示需要更新
   const data = json.data;
@@ -188,15 +217,15 @@ function applyUpdate(downloadPath, verifyCode) {
   const tmpRoot = path.resolve(app.getPath('temp'));
   const file = path.resolve(String(downloadPath || ''));
   if (!file.startsWith(tmpRoot + path.sep) || path.extname(file).toLowerCase() !== '.exe') {
-    throw new Error('安装包路径异常，已取消安装');
+    throw new Error(safeError('安装包路径异常，已取消安装'));
   }
   let size = 0;
   try {
     size = fs.statSync(file).size;
   } catch {
-    throw new Error('安装包不存在，请重新下载');
+    throw new Error(safeError('安装包不存在，请重新下载'));
   }
-  if (size < 1024 * 1024) throw new Error('安装包不完整，请重新下载');
+  if (size < 1024 * 1024) throw new Error(safeError('安装包不完整，请重新下载'));
 
   const installDir = findInstallDir();
   const args = [];
@@ -212,4 +241,4 @@ function applyUpdate(downloadPath, verifyCode) {
   return { installDir };
 }
 
-module.exports = { checkUpdate, downloadUpdate, applyUpdate, findInstallDir, UPDATE_API };
+module.exports = { checkUpdate, downloadUpdate, applyUpdate, findInstallDir, safeError };
