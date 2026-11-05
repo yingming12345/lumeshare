@@ -1,7 +1,7 @@
 {
   "name": "lumeshare",
   "productName": "LumeShare",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "LumeShare - LAN file sharing and screen live streaming for Windows (Electron)",
   "author": "LumeShare contributors",
   "license": "MIT",

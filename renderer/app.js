@@ -111,10 +111,6 @@ function initNav() {
         openFeedbackForm();
         return;
       }
-      if (view === 'files') {
-        toast('文件库功能已隐藏', 'error');
-        return;
-      }
       setView(view);
     });
   });

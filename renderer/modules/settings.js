@@ -64,7 +64,7 @@ function refreshAll() {
   if (s.defaultVideoPlayer === 'system') el('vp-system').checked = true;
   else el('vp-builtin').checked = true;
   window.lume.app.info().then((info) => {
-    el('app-version').textContent = 'v' + (info.version || '2.0.2');
+    el('app-version').textContent = 'v' + (info.version || '2.0.3');
   });
   refreshTrayState(s);
   refreshCacheInfo();

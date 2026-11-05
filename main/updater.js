@@ -13,7 +13,7 @@ const endpoints = require('../shared/endpoints');
 // 开源版不内置任何 Token：如需在线更新，请通过环境变量或自行修改此处注入
 const API_TOKEN = process.env.LUMESHARE_UPDATE_TOKEN || '';
 const UPDATE_API = endpoints.UPDATE_API;
-const CLIENT_UA = 'LumeShare-Client/2.0.2';
+const CLIENT_UA = 'LumeShare-Client/2.0.3';
 
 function httpGetJson(url, timeoutMs) {
   return new Promise((resolve, reject) => {

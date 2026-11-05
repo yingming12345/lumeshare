@@ -10,7 +10,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const logger = require('./logger');
 
 const MUSIC_URL = process.env.LUMESHARE_BGM_URL || '';
-const CLIENT_UA = 'LumeShare-Client/2.0.2';
+const CLIENT_UA = 'LumeShare-Client/2.0.3';
 const MIN_BYTES = 64 * 1024; // 小于该体积视为无效文件
 const VOLUME = 0.7; // 默认音量（避免过响影响用户）
 
