@@ -16,17 +16,19 @@
 | 渠道 | 说明 |
 | --- | --- |
 | <a href="https://ls.fur-myu.cn/" target="_blank" rel="noopener noreferrer">**官网**</a> | 项目官网：功能介绍、更新日志与最新下载入口（在新标签页打开） |
-| <a href="https://github.com/yingming12345/lumeshare/releases/latest" target="_blank" rel="noopener noreferrer">**GitHub Release 下载**</a> | GitHub 官方发布页：各版本源码归档（Source code）与版本更新说明 |
+| <a href="https://github.com/yingming12345/lumeshare/releases/latest" target="_blank" rel="noopener noreferrer">**GitHub Release 下载**</a> | GitHub 官方发布页：**直接下载 Windows 安装包（`.exe`）**、SHA-256 校验文件与各版本源码归档 |
 | <a href="https://1856515061.share.123pan.cn/123pan/Bwlrvd-rYmBv?pwd=yNtr" target="_blank" rel="noopener noreferrer">**网盘下载**</a> | 官方已打包的 Windows 安装包（x64，Windows 10 及以上），提取码 `yNtr` |
 
 > [!IMPORTANT]
 > **安装前请先阅读以下说明**
 >
-> 1. **网盘渠道**提供的是项目作者打包好的安装包，包含完整功能（含在线更新与官方服务接口），与本仓库源码构建出的版本可能存在差异；
-> 2. **源码渠道**（GitHub Release / 本仓库）只包含核心功能源码（局域网分享 / 文件库 / 屏幕直播），私有接口地址、更新 Token、日志加密种子等一律未开源，自行构建的版本不会连接任何第三方服务；
+> 1. **GitHub Release 与网盘**提供的是同一份官方安装包，包含完整功能（含在线更新与官方服务接口）；安装包与本仓库源码构建出的版本可能存在差异；
+> 2. **源码渠道**只包含核心功能源码（局域网分享 / 文件库 / 屏幕直播），私有接口地址、更新 Token、日志加密种子等一律未开源，自行构建的版本不会连接任何第三方服务；
 > 3. 为保障安全，请只从**官网、本仓库 GitHub Release 或上述官方网盘**获取程序，**不要使用来源不明的二次打包版本**；
 > 4. 下载后请确认文件名形如 `LumeShare-Setup-<版本号>.exe`（当前版本 **2.0.3**），系统要求为 Windows 10 / 11 64 位；
-> 5. 若链接失效、下载异常或发现异常文件，请在 [Issues](https://github.com/yingming12345/lumeshare/issues) 反馈，我们会尽快更新。
+> 5. 建议核对 SHA-256：GitHub Release 同时提供 `LumeShare-Setup-<版本号>.exe.sha256` 校验文件；
+> 6. 若链接失效、下载异常或发现异常文件，请在 [Issues](https://github.com/yingming12345/lumeshare/issues) 反馈，我们会尽快更新。
+
 
 
 ## 功能特性
